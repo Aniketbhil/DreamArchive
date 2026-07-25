@@ -9,32 +9,28 @@ interface Props {
   spawn: THREE.Vector3;
   target: THREE.Vector3;
   started: boolean;
-  onReachedCrystal?: () => void;
 }
 
-export default function FirstPersonCamera({
-  spawn,
-  target,
-  started,
-  onReachedCrystal,
-}: Props) {
+export default function FirstPersonCamera({ spawn, target, started }: Props) {
   const { camera } = useThree();
 
-  const mouseLook = useMemo(() => new MouseLook(), []);
   const headBob = useMemo(() => new HeadBob(), []);
 
-  const reached = useRef(false);
+  // FIX: Use a ref instead of useMemo. This allows us to safely recreate the instance if React destroys it.
+  const mouseLookRef = useRef<MouseLook | null>(null);
 
   const keys = useRef({ w: false, a: false, s: false, d: false });
   const velocity = useRef(new THREE.Vector3());
-
   const mouseState = useRef({ yaw: 0, pitch: 0 });
 
   const WALK_SPEED = 95;
 
   useEffect(() => {
-    camera.position.copy(spawn);
+    // FIX: Spawn a fresh MouseLook class every time this effect runs to guarantee event listeners are active
+    const mouseLook = new MouseLook();
+    mouseLookRef.current = mouseLook;
 
+    camera.position.copy(spawn);
     camera.lookAt(target);
     const initialEuler = new THREE.Euler().setFromQuaternion(
       camera.quaternion,
@@ -62,14 +58,15 @@ export default function FirstPersonCamera({
     window.addEventListener("keyup", handleKeyUp);
 
     return () => {
+      // Clean up the instance, which will safely wipe listeners before the next one is created
       mouseLook.dispose();
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [camera, spawn, target, mouseLook]);
+  }, [camera, spawn, target]);
 
   useFrame((state, delta) => {
-    if (!started || reached.current) return;
+    if (!started) return;
 
     const safeDelta = Math.min(delta, 0.1);
 
@@ -89,14 +86,16 @@ export default function FirstPersonCamera({
     if (moveDir.lengthSq() > 0) moveDir.normalize();
 
     const targetVelocity = moveDir.multiplyScalar(WALK_SPEED);
-
     const moveLerpFactor = 1 - Math.exp(-7 * safeDelta);
     velocity.current.lerp(targetVelocity, moveLerpFactor);
 
     camera.position.addScaledVector(velocity.current, safeDelta);
     camera.position.y = spawn.y;
 
-    mouseLook.update(mouseState.current, safeDelta);
+    // FIX: Safely update our referenced mouse look
+    if (mouseLookRef.current) {
+      mouseLookRef.current.update(mouseState.current, safeDelta);
+    }
 
     camera.rotation.set(
       mouseState.current.pitch,
@@ -109,14 +108,6 @@ export default function FirstPersonCamera({
     const bob = headBob.getOffset(state.clock.elapsedTime, isWalking);
 
     camera.rotateZ(bob.roll);
-
-    const flatCamera = new THREE.Vector2(camera.position.x, camera.position.z);
-    const flatTarget = new THREE.Vector2(target.x, target.z);
-
-    if (flatCamera.distanceTo(flatTarget) < 18 && !reached.current) {
-      reached.current = true;
-      onReachedCrystal?.();
-    }
   });
 
   return null;

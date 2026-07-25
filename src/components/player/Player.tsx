@@ -13,50 +13,43 @@ interface Props {
   target: THREE.Vector3;
 }
 
-export default function Player({
-  spawn,
-  target,
-}: Props) {
+export default function Player({ spawn, target }: Props) {
   const [started, setStarted] = useState(false);
 
-  const activateCrystal = useCrystalStore((s) => s.activate);
+  // We are now listening for the crystal's global state
+  const activated = useCrystalStore((s) => s.activated);
   const resetCrystal = useCrystalStore((s) => s.reset);
-  
+
   const fadeIn = useFadeStore((s) => s.fadeIn);
   const fadeOut = useFadeStore((s) => s.fadeOut);
-  
   const setScene = useAppStore((s) => s.setScene);
 
+  // 1. Initial spawn delay
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setStarted(true);
-    }, 800);
-
+    const timer = setTimeout(() => setStarted(true), 800);
     return () => clearTimeout(timer);
   }, []);
 
-  return (
-    <FirstPersonCamera
-      spawn={spawn}
-      target={target}
-      started={started}
-      onReachedCrystal={() => {
-        // 1. Crystal starts glowing and floating
-        activateCrystal();
+  // 2. The Cinematic Ending Sequence Trigger
+  useEffect(() => {
+    if (activated) {
+      // Wait 1.8 seconds for the crystal's glowing animation to build up
+      const timer1 = setTimeout(() => {
+        fadeIn(); // Fade to black
 
-        setTimeout(() => {
-          // 2. Screen starts fading to black
-          fadeIn();
-          
-          // 3. Wait 1.8 seconds for the fade animation to completely finish
-          setTimeout(() => {
-            setScene(SCENES.DREAM1); // Swap to the new scene
-            resetCrystal();          // Reset crystal state for next time
-            fadeOut();               // Fade the screen back to transparent
-          }, 1800); 
+        // Wait another 1.8 seconds for the screen to go completely dark
+        const timer2 = setTimeout(() => {
+          setScene(SCENES.DREAM1);
+          resetCrystal();
+          fadeOut(); // Bring the screen back up
+        }, 1800);
 
-        }, 1800); // Wait 1.8s after reaching crystal before fading
-      }}
-    />
-  );
+        return () => clearTimeout(timer2);
+      }, 1800);
+
+      return () => clearTimeout(timer1);
+    }
+  }, [activated, fadeIn, fadeOut, resetCrystal, setScene]);
+
+  return <FirstPersonCamera spawn={spawn} target={target} started={started} />;
 }
