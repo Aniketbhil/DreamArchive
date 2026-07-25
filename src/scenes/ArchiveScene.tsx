@@ -44,7 +44,7 @@ export default function ArchiveScene() {
     <>
       <Canvas
         shadows
-        dpr={[1, 2]}
+        dpr={[1, 1.5]} // Lowered max DPR from 2 to 1.5 to fix lag
         camera={{
           fov: 45,
           near: 0.1,

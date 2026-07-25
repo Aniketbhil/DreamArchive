@@ -21,8 +21,8 @@ export default function ArchiveLights() {
         castShadow
         intensity={4.5}
         position={[120, 180, 120]}
-        shadow-mapSize-width={4096}
-        shadow-mapSize-height={4096}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
       />
 
       {/* Crystal */}
