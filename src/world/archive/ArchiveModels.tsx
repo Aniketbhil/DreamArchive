@@ -55,7 +55,7 @@ export default function ArchiveModels({ onReady }: ArchiveModelsProps) {
       materials.current.push(material);
     });
 
-    const bounds = new THREE.Box3().setFromObject(root.current);
+    const bounds = new THREE.Box3().setFromObject(floor.scene);
 
     const crystalPosition = new THREE.Vector3();
 

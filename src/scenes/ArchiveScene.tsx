@@ -32,19 +32,41 @@ export default function ArchiveScene() {
 
   const spawn = useMemo(() => {
     if (!world) return new THREE.Vector3();
+
     const size = new THREE.Vector3();
     world.bounds.getSize(size);
-    return new THREE.Vector3(
+    const margin = Math.min(size.x, size.z) * 0.08;
+
+    const edgeX = THREE.MathUtils.clamp(
       world.crystal.x,
-      30,
-      world.crystal.z - size.z * 0.8,
+      world.bounds.min.x + margin,
+      world.bounds.max.x - margin,
     );
+    const edgeZ = world.bounds.min.z + margin;
+
+    return new THREE.Vector3(edgeX, 30, edgeZ);
   }, [world]);
 
   const target = useMemo(() => {
     if (!world) return new THREE.Vector3();
     return new THREE.Vector3(world.crystal.x, 30, world.crystal.z);
   }, [world]);
+
+  const constrainArchive = (pos: THREE.Vector3) => {
+    if (!world) return;
+
+    const margin = 1.5;
+    pos.x = THREE.MathUtils.clamp(
+      pos.x,
+      world.bounds.min.x + margin,
+      world.bounds.max.x - margin,
+    );
+    pos.z = THREE.MathUtils.clamp(
+      pos.z,
+      world.bounds.min.z + margin,
+      world.bounds.max.z - margin,
+    );
+  };
 
   return (
     <>
@@ -58,7 +80,13 @@ export default function ArchiveScene() {
         <Suspense fallback={null}>
           <ArchiveWorld onReady={setWorld} />
           <DustParticles />
-          {world && <Player spawn={spawn} target={target} />}
+          {world && (
+            <Player
+              spawn={spawn}
+              target={target}
+              constrainBounds={constrainArchive}
+            />
+          )}
           <PostProcessing />
         </Suspense>
       </Canvas>

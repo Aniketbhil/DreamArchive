@@ -11,9 +11,10 @@ import FirstPersonCamera from "./FirstPersonCamera";
 interface Props {
   spawn: THREE.Vector3;
   target: THREE.Vector3;
+  constrainBounds?: (pos: THREE.Vector3) => void;
 }
 
-export default function Player({ spawn, target }: Props) {
+export default function Player({ spawn, target, constrainBounds }: Props) {
   const [started, setStarted] = useState(false);
 
   // We are now listening for the crystal's global state
@@ -51,5 +52,12 @@ export default function Player({ spawn, target }: Props) {
     }
   }, [activated, fadeIn, fadeOut, resetCrystal, setScene]);
 
-  return <FirstPersonCamera spawn={spawn} target={target} started={started} />;
+  return (
+    <FirstPersonCamera
+      spawn={spawn}
+      target={target}
+      started={started}
+      constrainBounds={constrainBounds}
+    />
+  );
 }
