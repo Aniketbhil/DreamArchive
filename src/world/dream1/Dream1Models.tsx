@@ -1,7 +1,8 @@
 import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import * as THREE from "three";
+import { useFeatherStore } from "../../store/featherStore";
 
 export default function Dream1Models() {
   const clouds = useGLTF("/models/dream1/Final_Dream1_AllClouds.glb");
@@ -14,22 +15,17 @@ export default function Dream1Models() {
     "/models/dream1/Final_Dream1_SpaceBackgroundBox.glb",
   );
 
-  // Create refs to control the 3D groups directly
   const whalesRef = useRef<THREE.Group>(null);
-  const feathersRef = useRef<THREE.Group>(null);
+  const collectFeather = useFeatherStore((s) => s.collectFeather);
+
+  // We use the 3D object's internal ID to track collections safely
+  const [collectedIds, setCollectedIds] = useState<number[]>([]);
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
 
-    // 1. Make the whales float up and down gently in the sky
     if (whalesRef.current) {
       whalesRef.current.position.y = Math.sin(time * 0.5) * 2;
-    }
-
-    // 2. Make the feathers spin and bob to look like collectible items
-    if (feathersRef.current) {
-      feathersRef.current.position.y = Math.sin(time * 1.5) * 0.5;
-      // Note: If this spins them off-center, we will adjust it, but usually, it looks magical!
     }
   });
 
@@ -39,9 +35,24 @@ export default function Dream1Models() {
       <primitive object={clouds.scene} />
       <primitive object={islands.scene} />
 
-      {/* Wrap the animated models in our refs */}
-      <group ref={feathersRef}>
-        <primitive object={feathers.scene} />
+      {/* Feathers Container */}
+      <group>
+        <primitive
+          object={feathers.scene}
+          onClick={(e: any) => {
+            e.stopPropagation();
+            const clickedObject = e.object;
+
+            // Check if this specific mesh ID has already been collected
+            if (!collectedIds.includes(clickedObject.id)) {
+              setCollectedIds((prev) => [...prev, clickedObject.id]);
+              clickedObject.visible = false; // Hide the collected feather
+              collectFeather(); // Add +1 to the global store
+            }
+          }}
+          onPointerOver={() => (document.body.style.cursor = "pointer")}
+          onPointerOut={() => (document.body.style.cursor = "auto")}
+        />
       </group>
 
       <group ref={whalesRef}>
