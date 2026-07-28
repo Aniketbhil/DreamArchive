@@ -3,20 +3,24 @@ import { ScrollControls, Scroll } from "@react-three/drei";
 import FadeOverlay from "../components/transitions/FadeOverlay";
 import PostProcessing from "../components/effects/PostProcessing";
 
+// IMPORT YOUR NEW MODELS HERE
+import FinaleModels from "../world/finale/FinaleModels"; 
+
 export default function FinaleScene() {
   return (
     <>
-      <Canvas shadows dpr={[1, 1.5]} camera={{ fov: 45, near: 0.1, far: 5000, position: [0, 2, 10] }}>
-        <color attach="background" args={["#000000"]} />
+      <Canvas shadows dpr={[1, 1.5]} camera={{ fov: 45, near: 0.1, far: 5000, position: [0, 2, 5] }}>
+        <color attach="background" args={["#030712"]} /> {/* Pitch black void */}
         
-        <ambientLight intensity={1} />
-        <directionalLight intensity={2} position={[10, 20, 10]} />
+        <ambientLight intensity={0.2} />
+        <directionalLight intensity={1} position={[10, 20, 10]} />
 
         <ScrollControls pages={4} damping={0.2}>
           
           {/* SECTION 1: The 3D World */}
           <Scroll>
-            {/* We will add models here next */}
+            {/* INJECT THE GALLERY HERE */}
+            <FinaleModels />
           </Scroll>
 
           {/* SECTION 2: The HTML Overlay */}
