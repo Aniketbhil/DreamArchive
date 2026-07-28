@@ -16,7 +16,7 @@ export default function Dream3Scene() {
   }, []);
 
   // FIX: Moved spawn much closer (Z changed from 30 down to 8)
-  const spawn = useMemo(() => new THREE.Vector3(0, 1.5, 8), []);
+  const spawn = useMemo(() => new THREE.Vector3(0, 1.5, 1), []);
   const target = useMemo(() => new THREE.Vector3(0, 1.5, 0), []);
 
   const constrainDream3 = (pos: THREE.Vector3) => {

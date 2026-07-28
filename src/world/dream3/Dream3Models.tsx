@@ -23,23 +23,38 @@ export default function Dream3Models() {
           transparent: true,
           opacity: 0.3,
           roughness: 0.05,
-          transmission: 0.9, // This makes it act like real glass
+          transmission: 0.9, 
           thickness: 0.5,
         });
       }
     });
 
-    // 2. Fix the Blinding White Platforms (Make them properly shiny/metallic)
+    // 2. Fix the Shiny Platforms
     platforms.scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.material = new THREE.MeshStandardMaterial({
-          color: "#94a3b8", // A sleek slate/silver color
-          metalness: 0.9,   // High reflection (Shiny!)
-          roughness: 0.15,  // Very smooth
+          color: "#94a3b8",
+          metalness: 0.9,   
+          roughness: 0.15,  
         });
       }
     });
-  }, [path.scene, platforms.scene]);
+
+    // 3. FIX: Make the Laser Glasses visible with a sleek cyan/blue tint
+    laserFocus.scene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.material = new THREE.MeshPhysicalMaterial({
+          color: "#38bdf8", 
+          transparent: true,
+          opacity: 0.6,
+          roughness: 0.1,
+          metalness: 0.5,
+          transmission: 0.9, 
+          thickness: 0.5,
+        });
+      }
+    });
+  }, [path.scene, platforms.scene, laserFocus.scene]);
 
   return (
     <group>

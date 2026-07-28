@@ -20,20 +20,23 @@ export default function FirstPersonCamera({
   walkSpeed = 95,
   constrainBounds,
 }: Props) {
-  const { camera } = useThree();
+  // FIX: We need 'scene' to shoot our raycaster against your 3D models
+  const { camera, scene } = useThree();
 
   const headBob = useMemo(() => new HeadBob(), []);
   const mouseLookRef = useRef<MouseLook | null>(null);
 
-  // ADDED: "space" to our keyboard tracker
+  // Raycaster tools
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  const downVector = useMemo(() => new THREE.Vector3(0, -1, 0), []);
+
   const keys = useRef({ w: false, a: false, s: false, d: false, space: false });
   const velocity = useRef(new THREE.Vector3());
   const mouseState = useRef({ yaw: 0, pitch: 0 });
 
-  // ADDED: Jump & Gravity variables
-  const initialY = useRef(spawn.y);
   const yVelocity = useRef(0);
   const isGrounded = useRef(true);
+  const playerHeight = spawn.y; // Standard height based on your spawn point
 
   useEffect(() => {
     const mouseLook = new MouseLook();
@@ -50,13 +53,13 @@ export default function FirstPersonCamera({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (key === " ") keys.current.space = true; // Map Spacebar
+      if (key === " ") keys.current.space = true; 
       if (keys.current.hasOwnProperty(key)) keys.current[key as keyof typeof keys.current] = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
-      if (key === " ") keys.current.space = false; // Map Spacebar
+      if (key === " ") keys.current.space = false; 
       if (keys.current.hasOwnProperty(key)) keys.current[key as keyof typeof keys.current] = false;
     };
 
@@ -94,21 +97,44 @@ export default function FirstPersonCamera({
     // 1. Apply X and Z walking movement
     camera.position.addScaledVector(velocity.current, safeDelta);
 
-    // 2. Apply Jump Trigger
+    // 2. DYNAMIC RAYCAST COLLISION
+    // Shoot an invisible laser down from the camera to detect the physical models
+    raycaster.set(camera.position, downVector);
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    
+    // Default floor is WAY down there (so you fall into the void if you miss a jump)
+    let groundY = -1000; 
+    if (intersects.length > 0) {
+      groundY = intersects[0].point.y; 
+    }
+    const targetY = groundY + playerHeight;
+
+    // 3. Apply Jump Trigger
     if (keys.current.space && isGrounded.current) {
-      yVelocity.current = 10; // Jump force (how high you go)
+      yVelocity.current = 10; 
       isGrounded.current = false;
     }
 
-    // 3. Apply Gravity
-    yVelocity.current -= 25 * safeDelta; // Gravity strength (how fast you fall)
+    // 4. Apply Gravity
+    yVelocity.current -= 25 * safeDelta; 
     camera.position.y += yVelocity.current * safeDelta;
 
-    // 4. Ground Collision Check
-    if (camera.position.y <= initialY.current) {
-      camera.position.y = initialY.current; // Snap to the floor
-      yVelocity.current = 0;                // Stop falling
-      isGrounded.current = true;            // Allow jumping again
+    // 5. Landing Logic
+    if (camera.position.y <= targetY && yVelocity.current <= 0) {
+      // Only snap to the floor if the floor is close beneath us (prevents snapping to ceilings)
+      if (targetY - camera.position.y < 2) {
+        camera.position.y = targetY; 
+        yVelocity.current = 0;                
+        isGrounded.current = true;
+      }
+    } else {
+      isGrounded.current = false;
+    }
+
+    // 6. Void Respawn (If you fall off the platforms)
+    if (camera.position.y < -15) {
+      camera.position.copy(spawn);
+      yVelocity.current = 0;
     }
 
     if (constrainBounds) {
@@ -121,7 +147,6 @@ export default function FirstPersonCamera({
 
     camera.rotation.set(mouseState.current.pitch, mouseState.current.yaw, 0, "YXZ");
 
-    // Only apply head bobbing if we are actually walking on the ground
     const isWalking = velocity.current.lengthSq() > 1 && isGrounded.current;
     const bob = headBob.getOffset(state.clock.elapsedTime, isWalking);
 
