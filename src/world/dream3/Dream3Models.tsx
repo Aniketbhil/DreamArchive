@@ -18,22 +18,27 @@ export default function Dream3Models() {
 
   const toggleMirror = useDream3Store((s) => s.toggleMirror);
   const isUnlocked = useDream3Store((s) => s.isUnlocked);
+  const startTransition = useDream3Store((s) => s.startTransition); 
+  
+  // FIX: Grab the ENTIRE array of alignments at the top level of the component.
+  // This satisfies React's strict "Rules of Hooks"
+  const mirrorsAligned = useDream3Store((s) => s.mirrorsAligned);
 
   const [mirrorMeshes, setMirrorMeshes] = useState<THREE.Mesh[]>([]);
   const [focusMeshes, setFocusMeshes] = useState<THREE.Mesh[]>([]);
   
   const originalPositions = useRef<THREE.Vector3[]>([]);
 
-  // FIX: The fixed "X" formation from your diagram, placed tightly around the crystal
   const targetPositions = useMemo(() => [
-    new THREE.Vector3(4, 2.5, 4),   // Front Right
-    new THREE.Vector3(-4, 2.5, 4),  // Front Left
-    new THREE.Vector3(-4, 2.5, -4), // Back Left
-    new THREE.Vector3(4, 2.5, -4),  // Back Right
+    new THREE.Vector3(4, 2.5, 4),   
+    new THREE.Vector3(-4, 2.5, 4),  
+    new THREE.Vector3(-4, 2.5, -4), 
+    new THREE.Vector3(4, 2.5, -4),  
   ], []);
 
-  // The center point where all mirrors should aim their lasers
   const crystalCenter = useMemo(() => new THREE.Vector3(0, 1.5, 0), []);
+  
+  const laserLength = useMemo(() => targetPositions[0].distanceTo(crystalCenter), [targetPositions, crystalCenter]);
 
   useEffect(() => {
     path.scene.traverse((child) => {
@@ -60,28 +65,17 @@ export default function Dream3Models() {
       }
     });
 
-    // Extract Laser Focus points so we can turn them on one-by-one
     const extractedFocuses: THREE.Mesh[] = [];
     laserFocus.scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        // We clone the material so each focus point can glow independently
         child.material = new THREE.MeshPhysicalMaterial({
-          color: "#38bdf8", 
-          emissive: "#0ea5e9",
-          emissiveIntensity: 0.2, // Starts very dim
-          transparent: true, 
-          opacity: 0.6, 
-          roughness: 0.1, 
-          metalness: 0.5, 
-          transmission: 0.9, 
-          thickness: 0.5,
+          color: "#38bdf8", emissive: "#0ea5e9", emissiveIntensity: 0.2, transparent: true, opacity: 0.6, roughness: 0.1, metalness: 0.5, transmission: 0.9, thickness: 0.5,
         });
         extractedFocuses.push(child);
       }
     });
     setFocusMeshes(extractedFocuses);
 
-    // Extract Mirrors
     const extractedMirrors: THREE.Mesh[] = [];
     const origPos: THREE.Vector3[] = [];
     mirror.scene.traverse((child) => {
@@ -101,32 +95,20 @@ export default function Dream3Models() {
   useFrame((_, delta) => {
     rings.scene.rotation.y += delta * 0.2;
     rings.scene.rotation.z += delta * 0.1;
-
-    const alignments = useDream3Store.getState().mirrorsAligned;
     
-    // 1. Animate Mirrors
     mirrorMeshes.forEach((mesh, index) => {
-      const isAligned = alignments[index];
+      const isAligned = mirrorsAligned[index];
       const targetPos = isAligned ? targetPositions[index] : originalPositions.current[index];
       
       if (targetPos) {
         mesh.position.lerp(targetPos, delta * 2.5);
-        
-        if (isAligned) {
-          // If aligned, aim the mirror perfectly at the center crystal
-          mesh.lookAt(crystalCenter);
-        }
+        if (isAligned) mesh.lookAt(crystalCenter);
       }
     });
 
-    // 2. Animate Laser Focus Glow
     focusMeshes.forEach((mesh, index) => {
-      // Tie the first 4 focuses to the 4 mirrors. If there are 6 total focuses, 
-      // the last 2 will automatically turn on when the whole puzzle is unlocked!
-      const isActive = index < 4 ? alignments[index] : isUnlocked;
-      
+      const isActive = index < 4 ? mirrorsAligned[index] : isUnlocked;
       const mat = mesh.material as THREE.MeshPhysicalMaterial;
-      // Smoothly ramp up the glowing emissive intensity if it is active
       const targetGlow = isActive ? 5 : 0.2;
       mat.emissiveIntensity = THREE.MathUtils.lerp(mat.emissiveIntensity, targetGlow, delta * 4);
     });
@@ -140,7 +122,7 @@ export default function Dream3Models() {
   const handleCrystalClick = (e: any) => {
     e.stopPropagation();
     if (isUnlocked) {
-      alert("Congratulations! You have completed the Dream Archive!");
+      startTransition();
     }
   };
 
@@ -154,7 +136,6 @@ export default function Dream3Models() {
       <primitive object={runes.scene} />
       <primitive object={laserBase.scene} />
       
-      {/* We removed the primitive laserFocus and render the extracted ones here */}
       <group>
         {focusMeshes.map((mesh, index) => (
           <primitive key={`focus-${index}`} object={mesh} />
@@ -162,15 +143,27 @@ export default function Dream3Models() {
       </group>
 
       <group>
-        {mirrorMeshes.map((mesh, index) => (
-          <primitive 
-            key={`mirror-${index}`} 
-            object={mesh} 
-            onClick={(e: any) => handleMirrorClick(e, index)}
-            onPointerOver={() => (document.body.style.cursor = "pointer")}
-            onPointerOut={() => (document.body.style.cursor = "auto")}
-          />
-        ))}
+        {mirrorMeshes.map((mesh, index) => {
+          // FIX: Safely read from the array we grabbed at the top level
+          const isAligned = mirrorsAligned[index];
+          return (
+            <group key={`mirror-group-${index}`}>
+              <primitive 
+                object={mesh} 
+                onClick={(e: any) => handleMirrorClick(e, index)}
+                onPointerOver={() => (document.body.style.cursor = "pointer")}
+                onPointerOut={() => (document.body.style.cursor = "auto")}
+              >
+                {isUnlocked && isAligned && (
+                  <mesh position={[0, 0, -laserLength / 2]} rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.05, 0.05, laserLength, 16]} />
+                    <meshStandardMaterial color="#38bdf8" emissive="#0ea5e9" emissiveIntensity={5} />
+                  </mesh>
+                )}
+              </primitive>
+            </group>
+          );
+        })}
       </group>
 
       <group>
