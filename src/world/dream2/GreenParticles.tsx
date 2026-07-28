@@ -60,7 +60,7 @@ export default function GreenParticles() {
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, particlesCount]}>
-      <sphereGeometry args={[0.06, 8, 8]} />
+      <sphereGeometry args={[0.025, 8, 8]} />
       <meshBasicMaterial color="#4ade80" transparent opacity={0.8} />
     </instancedMesh>
   );

@@ -1,16 +1,9 @@
 export const SCENES = {
-  LOADER: "loader",
-
-  ARCHIVE: "archive",
-
-  DREAM1: "dream1",
-
-  DREAM2: "dream2",
-
-  DREAM3: "dream3",
-
-  CREDITS: "credits",
+  LOADER: "LOADER",
+  ARCHIVE: "ARCHIVE",
+  DREAM1: "DREAM1",
+  DREAM2: "DREAM2",
+  DREAM3: "DREAM3", // This tells the game that Dream 3 officially exists!
 } as const;
 
-export type SceneName =
-  (typeof SCENES)[keyof typeof SCENES];
+export type Scene = (typeof SCENES)[keyof typeof SCENES];

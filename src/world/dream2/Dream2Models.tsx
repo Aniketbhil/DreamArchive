@@ -23,7 +23,6 @@ export default function Dream2Models() {
   const crystalGroupRef = useRef<THREE.Group>(null);
   const keyRef = useRef<THREE.Group>(null);
 
-  // FIX 1: Safely calculate the exact center ONCE using useMemo instead of useEffect
   const crystalCenter = useMemo(() => {
     const box = new THREE.Box3().setFromObject(crystal.scene);
     const center = new THREE.Vector3();
@@ -44,19 +43,25 @@ export default function Dream2Models() {
         });
       }
     });
-  }, [water.scene]);
+
+    // FIX: Add a beautiful emissive glow to the crystal material
+    crystal.scene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        const mat = child.material as THREE.MeshStandardMaterial;
+        mat.emissive = new THREE.Color("#4ade80");
+        mat.emissiveIntensity = 2; // Adjust this number for more or less glow
+      }
+    });
+  }, [water.scene, crystal.scene]);
 
   useFrame((state, delta) => {
     if (crystalGroupRef.current) {
       if (crystalActivated) {
-        // Spin perfectly in place
         crystalGroupRef.current.rotation.y += delta * 2;
-        // Rise smoothly up to 1.5 units above its actual starting point
         if (crystalGroupRef.current.position.y < crystalCenter.y + 1.5) {
           crystalGroupRef.current.position.y += delta * 0.3;
         }
       } else {
-        // FIX 2: Gentle hover effect perfectly calculated from its true starting height
         crystalGroupRef.current.position.y = crystalCenter.y + Math.sin(state.clock.elapsedTime * 2) * 0.1;
       }
     }
@@ -103,11 +108,7 @@ export default function Dream2Models() {
         />
       </group>
 
-      {/* FIX 3: Nested Groups Hack. We move the parent group TO the crystal's center, 
-          then mathematically move the crystal mesh backward so they cancel out perfectly! */}
       <group ref={crystalGroupRef} position={crystalCenter}>
-        
-        {/* The inner offset perfectly cancels out the Blender coordinates */}
         <group position={[-crystalCenter.x, -crystalCenter.y, -crystalCenter.z]}>
           <primitive 
             object={crystal.scene} 
@@ -117,9 +118,10 @@ export default function Dream2Models() {
           />
         </group>
         
-        {/* Because the parent group is fixed, the particles will now wrap the crystal perfectly! */}
-        <GreenParticles />
+        {/* FIX: Add a real point light so the crystal casts green light onto the tree */}
+        <pointLight color="#4ade80" intensity={8} distance={15} />
         
+        <GreenParticles />
       </group>
     </group>
   );
