@@ -34,8 +34,8 @@ export default function Dream3Scene() {
       fadeIn(); // Fade screen to black
       
       const timer = setTimeout(() => {
-        // For now, let's return the player to the Archive Hub!
-        setScene(SCENES.ARCHIVE);
+        // Send them to the epic Finale instead of the Archive!
+        setScene(SCENES.FINALE);
         resetDream3();
         fadeOut(); 
       }, 1800);
