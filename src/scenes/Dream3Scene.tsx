@@ -6,11 +6,11 @@ import FadeOverlay from "../components/transitions/FadeOverlay";
 import Dream3Models from "../world/dream3/Dream3Models";
 import PostProcessing from "../components/effects/PostProcessing";
 import FirstPersonCamera from "../components/player/FirstPersonCamera";
-import { useDream3Store } from "../store/dream3Store"; // NEW
+import { useDream3Store } from "../store/dream3Store";
 
 export default function Dream3Scene() {
   const [started, setStarted] = useState(false);
-  const uiMessage = useDream3Store((s) => s.message); // NEW
+  const uiMessage = useDream3Store((s) => s.message); 
 
   useEffect(() => {
     const timer = setTimeout(() => setStarted(true), 800);
@@ -25,6 +25,7 @@ export default function Dream3Scene() {
     // pos.x = THREE.MathUtils.clamp(pos.x, -3, 3);
      pos.z = THREE.MathUtils.clamp(pos.z, -50, 1);
   };
+
 
   return (
     <>
@@ -42,15 +43,17 @@ export default function Dream3Scene() {
         textShadow: '0 2px 4px rgba(0,0,0,0.8)',
         textAlign: 'center'
       }}>
-        {uiMessage} {/* NEW: Dynamic Message Output */}
+        {uiMessage} 
       </div>
 
       <Canvas shadows dpr={[1, 1.5]} camera={{ fov: 45, near: 0.1, far: 5000 }}>
-        <color attach="background" args={["#02040a"]} />
+        {/* Slightly lighter deep space background so silhouettes are visible */}
+        <color attach="background" args={["#090e17"]} />
 
-        <ambientLight intensity={0.2} />
-        <hemisphereLight intensity={0.5} color="#c4b5fd" groundColor="#000000" />
-        <directionalLight castShadow intensity={2} position={[0, 50, 0]} color="#e0e7ff" />
+        {/* FIX: Massively boosted lighting so the rings and platforms are visible */}
+        <ambientLight intensity={1.5} />
+        <hemisphereLight intensity={1.2} color="#c4b5fd" groundColor="#1e293b" />
+        <directionalLight castShadow intensity={3} position={[20, 50, 20]} color="#e0e7ff" />
         
         <Suspense fallback={null}>
           <Dream3Models />
