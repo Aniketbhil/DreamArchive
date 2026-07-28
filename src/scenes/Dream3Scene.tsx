@@ -22,7 +22,7 @@ export default function Dream3Scene() {
   const constrainDream3 = (pos: THREE.Vector3) => {
     // BOUNDARIES TEMPORARILY DISABLED FOR TESTING
     // pos.x = THREE.MathUtils.clamp(pos.x, -3, 3);
-    // pos.z = THREE.MathUtils.clamp(pos.z, -5, 32);
+     pos.z = THREE.MathUtils.clamp(pos.z, -50, 3);
   };
 
   return (

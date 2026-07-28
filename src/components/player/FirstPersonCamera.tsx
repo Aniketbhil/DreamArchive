@@ -9,39 +9,38 @@ interface Props {
   spawn: THREE.Vector3;
   target: THREE.Vector3;
   started: boolean;
-  walkSpeed?: number; // NEW: Custom speed for each level
-  constrainBounds?: (pos: THREE.Vector3) => void; // NEW: Invisible walls function
+  walkSpeed?: number;
+  constrainBounds?: (pos: THREE.Vector3) => void;
 }
 
 export default function FirstPersonCamera({
   spawn,
   target,
   started,
-  walkSpeed = 95, // Default fallback
+  walkSpeed = 95,
   constrainBounds,
 }: Props) {
   const { camera } = useThree();
 
   const headBob = useMemo(() => new HeadBob(), []);
   const mouseLookRef = useRef<MouseLook | null>(null);
-  const spawnRef = useRef(spawn);
-  const targetRef = useRef(target);
 
-  const keys = useRef({ w: false, a: false, s: false, d: false });
+  // ADDED: "space" to our keyboard tracker
+  const keys = useRef({ w: false, a: false, s: false, d: false, space: false });
   const velocity = useRef(new THREE.Vector3());
   const mouseState = useRef({ yaw: 0, pitch: 0 });
 
-  useEffect(() => {
-    spawnRef.current = spawn;
-    targetRef.current = target;
-  }, [spawn, target]);
+  // ADDED: Jump & Gravity variables
+  const initialY = useRef(spawn.y);
+  const yVelocity = useRef(0);
+  const isGrounded = useRef(true);
 
   useEffect(() => {
     const mouseLook = new MouseLook();
     mouseLookRef.current = mouseLook;
 
-    camera.position.copy(spawnRef.current);
-    camera.lookAt(targetRef.current);
+    camera.position.copy(spawn);
+    camera.lookAt(target);
     const initialEuler = new THREE.Euler().setFromQuaternion(camera.quaternion, "YXZ");
 
     mouseLook.targetYaw = initialEuler.y;
@@ -51,11 +50,13 @@ export default function FirstPersonCamera({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
+      if (key === " ") keys.current.space = true; // Map Spacebar
       if (keys.current.hasOwnProperty(key)) keys.current[key as keyof typeof keys.current] = true;
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
+      if (key === " ") keys.current.space = false; // Map Spacebar
       if (keys.current.hasOwnProperty(key)) keys.current[key as keyof typeof keys.current] = false;
     };
 
@@ -67,7 +68,8 @@ export default function FirstPersonCamera({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [camera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useFrame((state, delta) => {
     if (!started) return;
@@ -85,15 +87,30 @@ export default function FirstPersonCamera({
 
     if (moveDir.lengthSq() > 0) moveDir.normalize();
 
-    // 1. Use the custom speed
     const targetVelocity = moveDir.multiplyScalar(walkSpeed);
     const moveLerpFactor = 1 - Math.exp(-7 * safeDelta);
     velocity.current.lerp(targetVelocity, moveLerpFactor);
 
+    // 1. Apply X and Z walking movement
     camera.position.addScaledVector(velocity.current, safeDelta);
-    camera.position.y = spawn.y;
 
-    // 2. Apply Invisible Walls if the level provides them
+    // 2. Apply Jump Trigger
+    if (keys.current.space && isGrounded.current) {
+      yVelocity.current = 10; // Jump force (how high you go)
+      isGrounded.current = false;
+    }
+
+    // 3. Apply Gravity
+    yVelocity.current -= 25 * safeDelta; // Gravity strength (how fast you fall)
+    camera.position.y += yVelocity.current * safeDelta;
+
+    // 4. Ground Collision Check
+    if (camera.position.y <= initialY.current) {
+      camera.position.y = initialY.current; // Snap to the floor
+      yVelocity.current = 0;                // Stop falling
+      isGrounded.current = true;            // Allow jumping again
+    }
+
     if (constrainBounds) {
       constrainBounds(camera.position);
     }
@@ -104,7 +121,8 @@ export default function FirstPersonCamera({
 
     camera.rotation.set(mouseState.current.pitch, mouseState.current.yaw, 0, "YXZ");
 
-    const isWalking = velocity.current.lengthSq() > 1;
+    // Only apply head bobbing if we are actually walking on the ground
+    const isWalking = velocity.current.lengthSq() > 1 && isGrounded.current;
     const bob = headBob.getOffset(state.clock.elapsedTime, isWalking);
 
     camera.rotateZ(bob.roll);
