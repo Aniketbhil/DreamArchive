@@ -19,8 +19,14 @@ body {
     Inter,
     system-ui,
     sans-serif;
+    scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 canvas {
   display: block;
+}
+
+::-webkit-scrollbar {
+  display: none;
 }
