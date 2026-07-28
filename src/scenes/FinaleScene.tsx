@@ -3,23 +3,29 @@ import { ScrollControls, Scroll } from "@react-three/drei";
 import FadeOverlay from "../components/transitions/FadeOverlay";
 import PostProcessing from "../components/effects/PostProcessing";
 
-// IMPORT YOUR NEW MODELS HERE
 import FinaleModels from "../world/finale/FinaleModels"; 
+import FinaleCamera from "../world/finale/FinaleCamera"; // NEW
 
 export default function FinaleScene() {
   return (
     <>
+      {/* 
+        We set the initial camera position, but FinaleCamera will take over 
+        as soon as the scene loads! 
+      */}
       <Canvas shadows dpr={[1, 1.5]} camera={{ fov: 45, near: 0.1, far: 5000, position: [0, 2, 5] }}>
-        <color attach="background" args={["#030712"]} /> {/* Pitch black void */}
+        <color attach="background" args={["#030712"]} /> 
         
         <ambientLight intensity={0.2} />
         <directionalLight intensity={1} position={[10, 20, 10]} />
 
         <ScrollControls pages={4} damping={0.2}>
           
+          {/* NEW: The camera that listens to the scroll wheel */}
+          <FinaleCamera />
+
           {/* SECTION 1: The 3D World */}
           <Scroll>
-            {/* INJECT THE GALLERY HERE */}
             <FinaleModels />
           </Scroll>
 
