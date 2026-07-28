@@ -18,7 +18,8 @@ export default function Dream2Models() {
   const well = useGLTF("/models/dream2/Dream2_Well.glb");
   const bridge = useGLTF("/models/dream2/Dream2_Wooden_Bridge.glb");
 
-  const { hasKey, collectKey, showMessage, crystalActivated, activateCrystal } = useDream2Store();
+  // Grab the new startTransition function
+  const { hasKey, collectKey, showMessage, crystalActivated, activateCrystal, startTransition } = useDream2Store();
 
   const crystalGroupRef = useRef<THREE.Group>(null);
   const keyRef = useRef<THREE.Group>(null);
@@ -31,25 +32,25 @@ export default function Dream2Models() {
   }, [crystal.scene]);
 
   useEffect(() => {
+    // FIX: Using a reliable StandardMaterial for the water so it always renders
     water.scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        child.material = new THREE.MeshPhysicalMaterial({
-          color: "#0ea5e9",
+        child.material = new THREE.MeshStandardMaterial({
+          color: "#0284c7", // Deep river blue
           transparent: true,
-          opacity: 0.8,
+          opacity: 0.75,
           roughness: 0.1,
-          transmission: 0.5,
-          thickness: 1,
+          metalness: 0.2,
+          depthWrite: false, // Helps prevent glitching with the ground
         });
       }
     });
 
-    // FIX: Add a beautiful emissive glow to the crystal material
     crystal.scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         const mat = child.material as THREE.MeshStandardMaterial;
         mat.emissive = new THREE.Color("#4ade80");
-        mat.emissiveIntensity = 2; // Adjust this number for more or less glow
+        mat.emissiveIntensity = 2; 
       }
     });
   }, [water.scene, crystal.scene]);
@@ -75,15 +76,20 @@ export default function Dream2Models() {
     }
   };
 
+  // FIX: The two-step click logic!
   const handleCrystalClick = (e: any) => {
     e.stopPropagation();
-    if (crystalActivated) return; 
     
     if (!hasKey) {
+      // Don't have the key yet
       showMessage("Find the key first!");
       setTimeout(() => showMessage("Objective: Find the key for go to the next dream"), 3000);
-    } else {
+    } else if (!crystalActivated) {
+      // FIRST CLICK: Trigger the animation
       activateCrystal();
+    } else {
+      // SECOND CLICK: Trigger the fade out to Dream 3
+      startTransition();
     }
   };
 
@@ -117,10 +123,7 @@ export default function Dream2Models() {
             onPointerOut={() => (document.body.style.cursor = "auto")}
           />
         </group>
-        
-        {/* FIX: Add a real point light so the crystal casts green light onto the tree */}
         <pointLight color="#4ade80" intensity={8} distance={15} />
-        
         <GreenParticles />
       </group>
     </group>

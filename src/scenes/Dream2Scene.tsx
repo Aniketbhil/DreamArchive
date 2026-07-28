@@ -7,18 +7,43 @@ import Dream2Models from "../world/dream2/Dream2Models";
 import PostProcessing from "../components/effects/PostProcessing";
 import FirstPersonCamera from "../components/player/FirstPersonCamera";
 
-import { useDream2Store } from "../store/dream2Store"; // NEW: Import the store
+import { useDream2Store } from "../store/dream2Store";
+import { useFadeStore } from "../store/fadeStore";
+import { useAppStore } from "../store/appStore";
+import { SCENES } from "../constants/scenes";
 
 export default function Dream2Scene() {
   const [started, setStarted] = useState(false);
   
-  // NEW: Grab the dynamic message from the store
   const uiMessage = useDream2Store((s) => s.message);
+  
+  // FIX: Watch the new transitioning state instead of crystalActivated
+  const transitioning = useDream2Store((s) => s.transitioning);
+  const resetDream2 = useDream2Store((s) => s.reset);
+
+  const fadeIn = useFadeStore((s) => s.fadeIn);
+  const fadeOut = useFadeStore((s) => s.fadeOut);
+  const setScene = useAppStore((s) => s.setScene);
 
   useEffect(() => {
     const timer = setTimeout(() => setStarted(true), 800);
     return () => clearTimeout(timer);
   }, []);
+
+  // FIX: Immediately trigger fade when second click happens
+  useEffect(() => {
+    if (transitioning) {
+      fadeIn(); // Fade screen to black
+      
+      const timer = setTimeout(() => {
+        setScene(SCENES.DREAM3);
+        resetDream2();
+        fadeOut(); // Bring screen back up
+      }, 1800);
+
+      return () => clearTimeout(timer);
+    }
+  }, [transitioning, fadeIn, fadeOut, resetDream2, setScene]);
 
   const spawn = useMemo(() => new THREE.Vector3(0, 1.5, 12), []);
   const target = useMemo(() => new THREE.Vector3(0, 1.5, 0), []);
@@ -45,23 +70,25 @@ export default function Dream2Scene() {
 
   return (
     <>
-      <div style={{
-        position: 'absolute',
-        top: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        color: '#ffffff',
-        fontFamily: 'sans-serif',
-        fontSize: '20px',
-        letterSpacing: '1px',
-        zIndex: 10,
-        pointerEvents: 'none',
-        textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-        textAlign: 'center'
-      }}>
-        {/* NEW: Dynamic Message Output */}
-        {uiMessage}
-      </div>
+      {/* Hide the UI during the fade transition */}
+      {!transitioning && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: '#ffffff',
+          fontFamily: 'sans-serif',
+          fontSize: '20px',
+          letterSpacing: '1px',
+          zIndex: 10,
+          pointerEvents: 'none',
+          textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+          textAlign: 'center'
+        }}>
+          {uiMessage}
+        </div>
+      )}
 
       <Canvas shadows dpr={[1, 1.5]} camera={{ fov: 45, near: 0.1, far: 3000 }}>
         <color attach="background" args={["#0a0f14"]} />
