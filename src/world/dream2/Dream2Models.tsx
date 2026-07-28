@@ -1,5 +1,5 @@
 import { useGLTF } from "@react-three/drei";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { useDream2Store } from "../../store/dream2Store";
@@ -23,9 +23,15 @@ export default function Dream2Models() {
   const crystalGroupRef = useRef<THREE.Group>(null);
   const keyRef = useRef<THREE.Group>(null);
 
-  // FIX: Setup Water and Crystal Pivot
+  // FIX 1: Safely calculate the exact center ONCE using useMemo instead of useEffect
+  const crystalCenter = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(crystal.scene);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    return center;
+  }, [crystal.scene]);
+
   useEffect(() => {
-    // 1. Water Material
     water.scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
         child.material = new THREE.MeshPhysicalMaterial({
@@ -38,32 +44,20 @@ export default function Dream2Models() {
         });
       }
     });
-
-    // 2. Crystal Pivot Hack (Stops the crazy orbiting)
-    const box = new THREE.Box3().setFromObject(crystal.scene);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
-    if (crystalGroupRef.current) {
-      // Move the wrapper exact to the crystal's visual center
-      crystalGroupRef.current.position.copy(center);
-      // Move the model backwards so it stays visually in the same spot
-      crystal.scene.position.set(-center.x, -center.y, -center.z);
-    }
-  }, [water.scene, crystal.scene]);
+  }, [water.scene]);
 
   useFrame((state, delta) => {
     if (crystalGroupRef.current) {
       if (crystalActivated) {
-        // Activated: Spin perfectly in place and move slightly upward
+        // Spin perfectly in place
         crystalGroupRef.current.rotation.y += delta * 2;
-        if (crystalGroupRef.current.position.y < 3.5) {
+        // Rise smoothly up to 1.5 units above its actual starting point
+        if (crystalGroupRef.current.position.y < crystalCenter.y + 1.5) {
           crystalGroupRef.current.position.y += delta * 0.3;
         }
       } else {
-        // Idle: JUST bob up and down smoothly. No rotation.
-        // We use an offset so it bobs relative to its starting height
-        crystalGroupRef.current.position.y += Math.sin(state.clock.elapsedTime * 2) * 0.002;
+        // FIX 2: Gentle hover effect perfectly calculated from its true starting height
+        crystalGroupRef.current.position.y = crystalCenter.y + Math.sin(state.clock.elapsedTime * 2) * 0.1;
       }
     }
   });
@@ -109,15 +103,23 @@ export default function Dream2Models() {
         />
       </group>
 
-      {/* Crystal and Particles are grouped together so the particles spawn AT the crystal's exact center */}
-      <group ref={crystalGroupRef}>
-        <primitive 
-          object={crystal.scene} 
-          onClick={handleCrystalClick}
-          onPointerOver={() => (document.body.style.cursor = "pointer")}
-          onPointerOut={() => (document.body.style.cursor = "auto")}
-        />
+      {/* FIX 3: Nested Groups Hack. We move the parent group TO the crystal's center, 
+          then mathematically move the crystal mesh backward so they cancel out perfectly! */}
+      <group ref={crystalGroupRef} position={crystalCenter}>
+        
+        {/* The inner offset perfectly cancels out the Blender coordinates */}
+        <group position={[-crystalCenter.x, -crystalCenter.y, -crystalCenter.z]}>
+          <primitive 
+            object={crystal.scene} 
+            onClick={handleCrystalClick}
+            onPointerOver={() => (document.body.style.cursor = "pointer")}
+            onPointerOut={() => (document.body.style.cursor = "auto")}
+          />
+        </group>
+        
+        {/* Because the parent group is fixed, the particles will now wrap the crystal perfectly! */}
         <GreenParticles />
+        
       </group>
     </group>
   );
