@@ -122,9 +122,9 @@ Before running DreamArchive locally, ensure you have the following installed:
 
 ## Setup Instructions
 
-1. **Clone the Repository**
+1. **Clone the Repository**`
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Aniketbhil/DreamArchive.git
    cd DreamArchive
    ```
 
@@ -218,6 +218,12 @@ DreamArchive operates as a client-side Single Page Application (SPA). State mana
 
 - **Future Scene Placeholders**: `SCENES` in `scenes.ts` defines constants for `DREAM1`, `DREAM2`, `DREAM3`, and `CREDITS`. Currently, `SceneManager.tsx` handles `LOADER` and `ARCHIVE` scenes; remaining scenes return `null` and are reserved for future environment expansions.
 - **Pointer Lock**: Mouse look currently relies on normalized viewport mouse coordinates rather than browser Pointer Lock API.
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 
