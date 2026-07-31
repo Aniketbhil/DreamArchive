@@ -17,7 +17,7 @@ export default function FirstPersonCamera({
   spawn,
   target,
   started,
-  walkSpeed = 95,
+  walkSpeed = 265,
   constrainBounds,
 }: Props) {
   // FIX: We need 'scene' to shoot our raycaster against your 3D models
