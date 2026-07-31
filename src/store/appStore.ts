@@ -2,13 +2,13 @@ import { create } from "zustand";
 
 import {
   SCENES,
-  type SceneName,
+  type Scene,
 } from "../constants/scenes";
 
 interface AppStore {
-  currentScene: SceneName;
+  currentScene: Scene;
 
-  setScene: (scene: SceneName) => void;
+  setScene: (scene: Scene) => void;
 }
 
 export const useAppStore =
