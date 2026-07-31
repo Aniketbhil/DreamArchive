@@ -75,7 +75,7 @@ export default function Dream3Scene() {
         </div>
       )}
 
-      <Canvas shadows dpr={[1, 1.5]} camera={{ fov: 45, near: 0.1, far: 5000 }}>
+      <Canvas shadows dpr={[1, 1.5]} camera={{ fov: 75, near: 0.1, far: 3000 }}>
         <color attach="background" args={["#090e17"]} />
         <ambientLight intensity={1.5} />
         <hemisphereLight intensity={1.2} color="#c4b5fd" groundColor="#1e293b" />
@@ -88,7 +88,7 @@ export default function Dream3Scene() {
             spawn={spawn}
             target={target}
             started={started}
-            walkSpeed={14} 
+            walkSpeed={7} 
             constrainBounds={constrainDream3}
           />
 

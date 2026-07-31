@@ -12,9 +12,10 @@ interface Props {
   spawn: THREE.Vector3;
   target: THREE.Vector3;
   constrainBounds?: (pos: THREE.Vector3) => void;
+  walkSpeed?: number;
 }
 
-export default function Player({ spawn, target, constrainBounds }: Props) {
+export default function Player({ spawn, target, constrainBounds, walkSpeed }: Props) {
   const [started, setStarted] = useState(false);
 
   // We are now listening for the crystal's global state
@@ -58,6 +59,7 @@ export default function Player({ spawn, target, constrainBounds }: Props) {
       target={target}
       started={started}
       constrainBounds={constrainBounds}
+      walkSpeed={walkSpeed}
     />
   );
 }
